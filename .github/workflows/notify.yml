@@ -1,0 +1,49 @@
+name: Send Push Notification
+
+on:
+  repository_dispatch:
+    types: [new-message]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send OneSignal push
+        env:
+          WHO: ${{ github.event.client_payload.who }}
+          TEXT: ${{ github.event.client_payload.text }}
+          ONESIGNAL_REST_KEY: ${{ secrets.ONESIGNAL_REST_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import os, json, urllib.request
+
+          who = os.environ.get("WHO", "")
+          text = os.environ.get("TEXT", "")
+          key = os.environ.get("ONESIGNAL_REST_KEY", "")
+
+          if not key:
+              print("ONESIGNAL_REST_KEY secret not set yet — skipping send.")
+          else:
+              payload = {
+                  "app_id": "beeb2f58-974a-4a7d-9a0f-61cc0c796f91",
+                  "headings": {"en": "Eraste \u2764 Amour"},
+                  "contents": {"en": (who + " : " + text)[:180]},
+                  "filters": [
+                      {"field": "tag", "key": "who", "relation": "!=", "value": who}
+                  ]
+              }
+              req = urllib.request.Request(
+                  "https://onesignal.com/api/v1/notifications",
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={
+                      "Content-Type": "application/json; charset=utf-8",
+                      "Authorization": "Basic " + key
+                  },
+                  method="POST"
+              )
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      print(resp.read().decode())
+              except Exception as e:
+                  print("Error sending notification:", e)
+          EOF
