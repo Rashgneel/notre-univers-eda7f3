@@ -1,3 +1,5 @@
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDKWorker.js");
+
 const CACHE_NAME = "tresor-amour-cache-v1";
 const ASSETS = [
   "./",
